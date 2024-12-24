@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func main() {
+func pwd() {
 	// Определяем флаги
 	logical := flag.Bool("L", false, "Выводит логический путь")
 	physical := flag.Bool("P", false, "Выводит физический путь")
@@ -37,7 +37,7 @@ func main() {
 					os.Exit(1)
 				}
 			}
-		} else{
+		} else {
 			// Получаем логический путь
 			currentDir, err = os.Readlink("/proc/self/cwd")
 			if err != nil {
@@ -50,7 +50,6 @@ func main() {
 			}
 		}
 	}
-
 
 	fmt.Println(currentDir)
 }

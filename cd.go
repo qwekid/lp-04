@@ -8,66 +8,70 @@ import (
 )
 
 func main() {
-	// Определяем флаги
-	homeFlag := flag.Bool("home", false, "Перейти в домашнюю директорию")
-	backFlag := flag.Bool("back", false, "Перейти в предыдущую директорию")
-	rootFlag := flag.Bool("root", false, "Перейти в корневую директорию")
+	// Определение ключей
+	physical := flag.Bool("P", false, "Использовать физический путь (без символических ссылок)")
+	logical := flag.Bool("L", false, "Использовать логический путь (учитывая символические ссылки)")
+	version := flag.Bool("v", false, "Показать версию программы")
+	help := flag.Bool("h", false, "Показать справку")
+
+	// Разбор аргументов командной строки
 	flag.Parse()
 
-	var targetDir string
+	// Обработка ключа -v (версия)
+	if *version {
+		fmt.Println("Версия программы: 1.0.0")
+		return
+	}
 
-	// Обработка флагов
-	if *homeFlag {
-		homeDir, err := os.UserHomeDir()
+	// Обработка ключа -h (справка)
+	if *help {
+		fmt.Println("Использование: eval $(./cd [-P] [-L] [-v] [-h] <путь>)")
+		fmt.Println("  -P: Использовать физический путь (без символических ссылок)")
+		fmt.Println("  -L: Использовать логический путь (учитывая символические ссылки)")
+		fmt.Println("  -v: Показать версию программы")
+		fmt.Println("  -h: Показать это сообщение справки")
+		fmt.Println("\nДля перехода в директорию выполните: eval $(./cd -L /путь/к/директории)")
+		return
+	}
+
+	// Проверка наличия пути
+	args := flag.Args()
+	if len(args) == 0 {
+		fmt.Println("Ошибка: не указан путь. Для перехода в директорию выполните: eval $(./cd /путь/к/директории)")
+		return
+	}
+
+	path := args[0]
+
+	// Обработка пути в зависимости от ключей
+	var finalPath string
+	if *physical {
+		// Преобразование в физический путь
+		absPath, err := filepath.EvalSymlinks(path)
 		if err != nil {
-			fmt.Println("Ошибка: невозможно определить домашнюю директорию")
-			os.Exit(1)
+			fmt.Printf("Ошибка: не удалось преобразовать путь '%s' в физический: %v\n", path, err)
+			return
 		}
-		targetDir = homeDir
-	} else if *backFlag {
-		prevDir := os.Getenv("OLDPWD")
-		if prevDir == "" {
-			fmt.Println("Ошибка: предыдущая директория не установлена")
-			os.Exit(1)
+		finalPath = absPath
+	} else if *logical {
+		// Использование логического пути
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			fmt.Printf("Ошибка: не удалось преобразовать путь '%s' в логический: %v\n", path, err)
+			return
 		}
-		targetDir = prevDir
-	} else if *rootFlag {
-		targetDir = "/"
+		finalPath = absPath
 	} else {
-		// Если флаги не переданы, берём первый аргумент (путь)
-		if len(flag.Args()) > 0 {
-			targetDir = flag.Args()[0]
-		} else {
-			fmt.Println("Ошибка: не указан путь")
-			os.Exit(1)
-		}
+		// Если ключи не указаны, просто проверяем существование пути
+		finalPath = path
 	}
 
-	// Проверяем существование директории
-	absPath, err := filepath.Abs(targetDir)
-	if err != nil {
-		fmt.Printf("Ошибка: невозможность преобразовать путь '%s': %v\n", targetDir, err)
-		os.Exit(1)
+	// Проверка существования директории
+	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
+		fmt.Printf("Ошибка: директория '%s' не существует. Убедитесь, что путь указан правильно.\n", finalPath)
+		return
 	}
 
-	info, err := os.Stat(absPath)
-	if os.IsNotExist(err) || !info.IsDir() {
-		fmt.Printf("Ошибка: директория '%s' недоступна или не существует\n", absPath)
-		os.Exit(1)
-	}
-
-	// Выводим новую директорию для оболочки
-	fmt.Println(absPath)
-
-	// Устанавливаем переменные окружения для текущего процесса
-	oldPwd, _ := os.Getwd()
-	os.Setenv("OLDPWD", oldPwd)
-	os.Setenv("PWD", absPath)
-
-	// Меняем текущую директорию
-	err = os.Chdir(absPath)
-	if err != nil {
-		fmt.Printf("Ошибка: невозможность сменить директорию на '%s': %v\n", absPath, err)
-		os.Exit(1)
-	}
+	// Вывод команды для смены директории
+	fmt.Printf("cd %s\n", finalPath)
 }

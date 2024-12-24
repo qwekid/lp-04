@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func main() {
+func ls() {
 	// Определение флагов
 	rec := flag.Bool("R", false, "рекурсивный вывод")
 	reverse := flag.Bool("r", false, "обратный порядок")
