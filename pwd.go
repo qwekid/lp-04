@@ -8,8 +8,8 @@ import (
 
 func main() {
 	// Определяем флаги
-	logical := flag.Bool("L", false, "выводит логический путь")
-	physical := flag.Bool("P", false, "выводит физический путь")
+	logical := flag.Bool("L", false, "Выводит логический путь")
+	physical := flag.Bool("P", false, "Выводит физический путь")
 
 	// Парсим флаги
 	flag.Parse()
