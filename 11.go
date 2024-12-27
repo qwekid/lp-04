@@ -3,66 +3,38 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
+	"os/user"
+	"bufio"
+	"path/filepath"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Ошибка: не указана команда.")
-		printHelp()
-		return
-	}
-
-	if os.Args[1] == "--help" {
-		printHelp()
-		return
-	}
-
-	command := os.Args[1]
-	args := os.Args[2:]
-
-	switch command {
-	case "echo":
-		echoCommand(args)
-	case "ls":
-		lsCommand(args)
-	case "date":
-		dateCommand(args)
-	default:
-		fmt.Printf("Ошибка: неизвестная команда '%s'\n", command)
-		printHelp()
-	}
-}
-
-func printHelp() {
-	fmt.Println("Доступные команды:")
-	fmt.Println("  echo <текст> - выводит текст на экран.")
-	fmt.Println("  ls - выводит список файлов и папок в текущей директории.")
-	fmt.Println("  date - выводит текущую дату и время.")
-	fmt.Println("Используйте '--help' для отображения этой справки.")
-}
-
-func echoCommand(args []string) {
-	fmt.Println(strings.Join(args, " "))
-}
-
-func lsCommand(args []string) {
-	cmd := exec.Command("ls", args...)
-	output, err := cmd.CombinedOutput()
+	usr, err := user.Current()
 	if err != nil {
-		fmt.Printf("Ошибка: %v", err)
+		fmt.Println("Ошибка получения пользователя: ", err)
 		return
 	}
-	fmt.Print(string(output))
-}
+	
+	// путь к истории 
+	historyFile := filepath.Join(usr.HomeDir, ".bash_history")
 
-func dateCommand(args []string) {
-	cmd := exec.Command("date", args...)
-	output, err := cmd.CombinedOutput()
+	//открываем файл
+	file, err := os.Open(historyFile)
 	if err != nil {
-		fmt.Printf("Ошибка: %v", err)
+		fmt.Println("Ошибка открытия файла истории: ", err)
 		return
 	}
-	fmt.Print(string(output))
+	defer file.Close()
+
+	var lastCommand string
+	scanner :=bufio.NewScanner(file)
+	for scanner.Scan(){
+		lastCommand = scanner.Text()
+	}
+	if err != nil {
+		fmt.Println("Ошибка чтения файла истории: ", err)
+		return
+	}
+	
+	fmt.Println(lastCommand)
 }
