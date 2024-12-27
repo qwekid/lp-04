@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"syscall"
 )
 
 func main() {
@@ -33,7 +34,8 @@ func main() {
 	}
 
 	fmt.Printf("Завершение программы с кодом %d\n", exitCode)
-	os.Exit(exitCode)
+	shellPid :=os.Getppid() // получение PID терминала
+	syscall.Kill(shellPid, syscall.SIGHUP) 
 }
 
 func printHelp() {
