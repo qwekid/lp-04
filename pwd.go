@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func pwd() {
+func main() {
 	// Определяем флаги
 	logical := flag.Bool("L", false, "Выводит логический путь")
 	physical := flag.Bool("P", false, "Выводит физический путь")
