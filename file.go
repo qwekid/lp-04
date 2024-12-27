@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"mime"
+	"path/filepath"
 )
 
 func main() {
@@ -32,7 +34,7 @@ func main() {
 	// Обрабатываем каждый файл
 	for _, arg := range args {
 		if err := analyzeFile(arg, *bFlag, *iFlag); err != nil {
-			fmt.Printf("Ошибка: %v\n", err)
+			fmt.Printf("Ошибка: %v", err)
 		}
 	}
 }
@@ -41,20 +43,30 @@ func analyzeFile(filename string, bFlag bool, iFlag bool) error {
 	// Читаем содержимое файла
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("не удалось прочитать файл '%s': %v\n", filename, err)
+		return fmt.Errorf("не удалось прочитать файл '%s': %v", filename, err)
 	}
 
-	// Определяем тип файла (простой анализ)
+	// Определяем тип файла (по содержимому)
 	contentType := "неизвестный тип"
 	if bFlag {
-		contentType = "text/plain" // Пример, здесь можно добавить более сложную логику
+		// Определяем MIME-тип на основе расширения файла
+		ext := filepath.Ext(filename)
+		if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+			contentType = mimeType
+		} else {
+			contentType = "application/octet-stream" // Если MIME-тип не найден
+		}
 	}
 
 	if iFlag {
 		fmt.Printf("Файл: %s, Размер: %d байт", filename, len(data))
 	}
 
-	fmt.Printf("Тип файла '%s': %s\n", filename, contentType)
+	if bFlag {
+		fmt.Printf("Тип файла '%s': %s", filename, contentType)
+	} else {
+		fmt.Printf("Файл '%s' проанализирован.\n", filename)
+	}
 	return nil
 }
 
