@@ -1,72 +1,76 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strings"
+"bufio"
+"fmt"
+"os"
+"os/user"
+"path/filepath"
+"strconv"
+"os/exec"
 )
 
-func printHelp() {
-	fmt.Println("Использование:")
-	fmt.Println("  echo <сообщение>   - выводит сообщение обратно")
-	fmt.Println("  count <строка>    - выводит количество символов в строке")
-	fmt.Println("  reverse <строка>  - выводит строку в обратном порядке")
-	fmt.Println("  help              - выводит это сообщение")
-}
-
-func echo(args []string) {
-	if len(args) < 2 {
-		fmt.Println("Ошибка: недостаточно аргументов для команды echo.")
-		return
-	}
-	message := strings.Join(args[1:], " ")
-	fmt.Println(message)
-}
-
-func count(args []string) {
-	if len(args) < 2 {
-		fmt.Println("Ошибка: недостаточно аргументов для команды count.")
-		return
-	}
-	str := strings.Join(args[1:], " ")
-	fmt.Printf("Количество символов: %d", len(str))
-}
-
-func reverse(args []string) {
-	if len(args) < 2 {
-		fmt.Println("Ошибка: недостаточно аргументов для команды reverse.")
-		return
-	}
-	str := strings.Join(args[1:], " ")
-	reversed := reverseString(str)
-	fmt.Println(reversed)
-}
-
-func reverseString(s string) string {
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
-}
-
 func main() {
-	if len(os.Args) < 2 {
-		printHelp()
-		return
-	}
+// Проверяем, передан ли номер команды
+if len(os.Args) < 2 {
+fmt.Println("Использование: go run main.go <номер команды>")
+return
+}
 
-	command := os.Args[1]
-	switch command {
-	case "-echo":
-		echo(os.Args)
-	case "-count":
-		count(os.Args)
-	case "-reverse":
-		reverse(os.Args)
-	case "-help":
-		printHelp()
-	default:
-		fmt.Println("Ошибка: неизвестная команда. Используйте 'help' для получения справки.")
-	}
+// Получаем номер команды из аргументов
+commandNumber, err := strconv.Atoi(os.Args[1])
+if err != nil {
+	fmt.Println("Ошибка: номер команды должен быть числом.")
+	return
+}
+
+// Определяем текущего пользователя
+usr, err := user.Current()
+if err != nil {
+	fmt.Println("Ошибка получения текущего пользователя:", err)
+	return
+}
+
+// Путь к файлу истории Bash
+historyFile := filepath.Join(usr.HomeDir, ".bash_history")
+
+// Открываем файл истории
+file, err := os.Open(historyFile)
+if err != nil {
+	fmt.Println("Ошибка открытия файла истории:", err)
+	return
+}
+defer file.Close()
+
+// Считываем файл построчно
+scanner := bufio.NewScanner(file)
+var history []string
+for scanner.Scan() {
+	history = append(history, scanner.Text())
+}
+
+if err := scanner.Err(); err != nil {
+	fmt.Println("Ошибка чтения файла истории:", err)
+	return
+}
+
+// Проверяем, существует ли команда с указанным номером
+if commandNumber < 1 || commandNumber > len(history) {
+	fmt.Printf("Команда с номером %d не найдена в истории.\n", commandNumber)
+	return
+}
+
+// Получаем команду
+targetCommand := history[commandNumber-1]
+fmt.Printf("Команда с номером %d: %s\n", commandNumber, targetCommand)
+
+execCmd := exec.Command("bash", "-c", targetCommand)
+execCmd.Stdout = os.Stdout
+execCmd.Stderr = os.Stderr
+err = execCmd.Run()
+
+if err != nil {
+	fmt.Println("Ошибка выполнения команды:", err)
+	return
+}
 }
